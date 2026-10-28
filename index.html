@@ -35,6 +35,7 @@
   .text { font-size: 17px; line-height: 1.9; max-width: 30em; }
   .text p { margin: 0 0 1em; }
   .text span { display: inline-block; } /* 言葉の途中で改行しない */
+  .text { word-break: auto-phrase; } /* スプシの文言も、対応ブラウザでは文節で折り返す */
   .text strong { color: #FFD000; font-weight: 700; }
   .end .text { font-size: 19px; }
   #mock {
@@ -51,7 +52,7 @@
 <!-- ① 開始画面 -->
 <section id="start" class="screen show">
   <img class="logo" src="logo.png" alt="" onerror="this.remove()">
-  <div class="text">
+  <div class="text" id="startText">
     <p><span>3年生のエンディング</span><span>パフォーマンスの際、</span><br><span>MCの合図で</span><span>こちらのサイトを</span><span>お開きください。</span></p>
     <p><span><strong>画面の明るさを最大</strong>にし、</span><br><span>本画面を開いたら</span><span>そのままお待ちください。</span></p>
   </div>
@@ -59,7 +60,7 @@
 
 <!-- ③ 終了画面 -->
 <section id="end" class="screen end">
-  <div class="text">
+  <div class="text" id="endText">
     <p><span>本アプリの使用は</span><span>以上となります。</span></p>
     <p><span>お楽しみいただき、</span><br><span>ありがとうございました！</span></p>
   </div>
@@ -89,6 +90,20 @@
     root.style.backgroundColor = color;
     document.body.style.backgroundColor = color;
     themeMeta.setAttribute('content', color);
+
+    // スプシで文言が入っていれば差し替え（空なら最初から書いてある文言のまま）
+    if (state.startText) setText('startText', state.startText);
+    if (state.endText) setText('endText', state.endText);
+  }
+
+  // 改行 → 改行、空行 → 段落、**ここ** → 黄色の太字
+  function setText(id, text) {
+    const esc = String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const html = esc.trim().split(/\n\s*\n/)
+      .map(p => '<p>' + p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>') + '</p>')
+      .join('');
+    const el = document.getElementById(id);
+    if (el.dataset.src !== html) { el.innerHTML = html; el.dataset.src = html; }
   }
 
   // 画面を消さない（対応端末のみ）。タップされたら全画面化も試す（Android）
@@ -126,6 +141,7 @@
     add('開始', { mode: 'start' });
     colors.forEach(c => add('　', { mode: 'color', color: c }, c));
     add('終了', { mode: 'end' });
+    add('文言', { mode: 'start', startText: '3年生のエンディング\nパフォーマンスの際、\nMCの合図でこちらのサイトを\nお開きください。\n\n**画面の明るさを最大**にし、\n本画面を開いたら\nそのままお待ちください。（スプシ）' });
   } else {
     // Firestore の live/state を購読。スプシで変更されると数秒以内に届く
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
