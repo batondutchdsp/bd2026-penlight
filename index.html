@@ -34,7 +34,8 @@
   .logo { max-width: 70vw; max-height: 32vh; margin-bottom: 36px; }
   .text { font-size: 17px; line-height: 1.9; max-width: 30em; }
   .text p { margin: 0 0 1em; }
-  .text span { display: inline-block; } /* 言葉の途中で改行しない */
+  .text { transition: opacity .3s ease; }
+  body:not(.ready) .text { opacity: 0; } /* スプシの文言が届くまで文字は出さない */
   .text { word-break: auto-phrase; } /* スプシの文言も、対応ブラウザでは文節で折り返す */
   .text strong { color: #FFD000; font-weight: 700; }
   .end .text { font-size: 19px; }
@@ -53,16 +54,17 @@
 <section id="start" class="screen show">
   <img class="logo" src="logo.png" alt="" onerror="this.remove()">
   <div class="text" id="startText">
-    <p><span>3年生のエンディング</span><span>パフォーマンスの際、</span><br><span>MCの合図で</span><span>こちらのサイトを</span><span>お開きください。</span></p>
-    <p><span><strong>画面の明るさを最大</strong>にし、</span><br><span>本画面を開いたら</span><span>そのままお待ちください。</span></p>
+    <p>本日はご来場、ありがとうございます。</p>
+    <p><strong>3年生のエンディング</strong><br><strong>パフォーマンス</strong>の際、<br>MCの合図でこちらのサイトを<br>お開きください。</p>
+    <p><strong>画面の明るさを最大</strong>にしていただき、<br>また、<strong>画面の自動オフの設定を解除</strong>し<br>本画面を開いたら、<br>そのままお待ちください。</p>
   </div>
 </section>
 
 <!-- ③ 終了画面 -->
 <section id="end" class="screen end">
   <div class="text" id="endText">
-    <p><span>本アプリの使用は</span><span>以上となります。</span></p>
-    <p><span>お楽しみいただき、</span><br><span>ありがとうございました！</span></p>
+    <p>本アプリの使用は<br>以上となります。</p>
+    <p>お楽しみいただき、<br>ありがとうございました！</p>
   </div>
 </section>
 
@@ -132,11 +134,15 @@
   let shownKey = null;
   let timer = null;
 
+  function showText() { document.body.classList.add('ready'); }
+  setTimeout(showText, 5000); // 通信できないときは、ここに書いてある文言を出す
+
   function setRemote(data) {
     remote = data;
     // スプシで文言が入っていれば差し替え（空なら最初から書いてある文言のまま）
     if (data.startText) setText('startText', data.startText);
     if (data.endText) setText('endText', data.endText);
+    showText();
     render();
   }
 
@@ -239,6 +245,7 @@
       ]),
     });
     window.penlight = { clock, setRemote };
+    showText();
   } else {
     // Firestore の live/state を購読。スプシで変更されると数秒以内に届く
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
